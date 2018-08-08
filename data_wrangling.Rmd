@@ -1,0 +1,136 @@
+---
+title: "Data Wrangling Challange"
+author: "Gabriel Mutua"
+date: "August 8, 2018"
+output: html_document
+---
+
+```{r include=FALSE}
+#Load the data provided
+challange_1 <- read.csv("~/Rmarkdown/housing_data.csv")
+```
+
+```{r include=FALSE}
+#load or install all required packages
+packages <- c("ggplot2", "rmarkdown", "knitr", "RColorBrewer", "reshape2", "plyr")
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(packages, rownames(installed.packages())))  
+}
+```
+
+
+#####**1) How many learners were in the housing trainings project?**
+
+Since the learners ID is unique, I checked the length of the coloumn the learner_id. Although not a good practice we can counter check the results by using dim function, to check the dimension of the whole data frame
+
+```{r}
+no_learners = length(challange_1$learner_id)
+no_learners
+##checking the dimension of the whole data frame.
+dim(challange_1)
+```
+
+#####**2) Which were the 3 most popular trainings? (Trainings with the most learners)?**
+
+```{r results='asis'}
+library(knitr)
+popular <- as.data.frame(table(challange_1$program_code))
+popular= popular[order(-popular$Freq),]
+kable(popular[1:5,], caption = "Top five most popular programs")
+
+```
+
+***Visualizing the top for five popular trainings***
+
+```{r echo=FALSE}
+library(ggplot2)
+plot = popular[1:5,]
+ggplot(data = plot, aes(x = reorder(Var1, -Freq), y = Freq, fill = Var1))+
+  geom_bar(stat = "identity")+
+  theme(
+    axis.title= element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
+
+#####**3) Which learner had the most interactions and how many interactions did they have?**
+
+```{r results='asis'}
+library(reshape2)
+interactions <- subset(challange_1, select = c("learner_id","variation_code"))
+interactions_count <- melt(table(interactions))
+
+library(plyr)
+summarized_interaction <- ddply(interactions_count,.(learner_id),summarize,sum=sum(value),number=length(learner_id))
+most_interactions = summarized_interaction[order(-summarized_interaction$sum),]
+most_interactions = most_interactions[1:5, 1:2]
+
+
+kable(most_interactions, caption = "Learners with most interactions")
+
+```
+
+***Learners with most interactions***
+
+```{r echo= FALSE}
+ggplot(data = most_interactions, aes(x = reorder(as.character(learner_id),-sum), y = sum, fill = as.character(learner_id)))+
+  geom_bar(stat = "identity")+
+  theme(
+    axis.title= element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
+
+From both the table and the plot we can see learner 6484248 had the most interactions
+
+#####**4) How many learners had more than 100 interactions (>100)? **
+
+```{r}
+more_than <- subset(summarized_interaction, sum > 100)
+length(more_than$learner_id)
+```
+
+#####**5a) How many learners had 100 or less interactions (<= 100) **
+
+```{r}
+less_than <- subset(summarized_interaction, sum <= 100)
+length(less_than$learner_id)
+```
+
+
+#####**5b) derive summary statistics of their interactions for 5a **
+```{r}
+summary_stats <- summary(less_than$sum)
+summary_stats
+```
+
+#####**5c) visualize the distribution of their interaction counts of 5a **
+
+```{r warning=FALSE}
+qplot(less_than$sum, geom ="histogram")
+```
+
+#####**6) Which day of the week had the most interactions and which had the least interactions?**
+
+```{r}
+challange_1$day <- weekdays(as.Date(challange_1$created_at))
+days = as.data.frame(table(challange_1$day))
+
+days= days[order(-days$Freq),]
+kable(days, caption = "Number of interactrions per day")
+```
+
+***Interactions per day***
+
+```{r echo=FALSE}
+ggplot(data = days, aes(x = reorder(Var1, -Freq), y = Freq, fill = Var1))+
+  geom_bar(stat = "identity")+
+  theme(
+    axis.title= element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
+
